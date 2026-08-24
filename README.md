@@ -1,0 +1,2 @@
+# Campushub
+Schoolmanagement system
