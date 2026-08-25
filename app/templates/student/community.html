@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head">
+  <div><span class="pill">Campus Community</span><h1>Campus Community</h1><p>Group discussion for students and administrators. Students can also privately chat with other students.</p></div>
+  {% if current_role == 'student' %}<a class="btn" href="{{ url_for('student_dashboard') }}">← Dashboard</a>{% else %}<a class="btn" href="{{ url_for('admin_overview') }}">← Admin</a>{% endif %}
+</div>
+<div class="social-layout">
+<section class="card">
+  <h2>🌐 Group Community</h2><p><small>Administrators can view, post and comment here too.</small></p>
+  <form method="post" action="{{ url_for('community_post') }}"><textarea name="content" placeholder="What's happening on campus?" required></textarea><button class="btn">Publish to Community</button></form>
+  <div class="feed">
+  {% for p in posts %}
+    <article class="post"><div class="post-head"><div class="avatar">{{ p.author_name[:1]|upper }}</div><div><b>{{ p.author_name }}</b><small>{{ p.specialty or 'CampusHub' }} • {{ p.year or '' }} • {{ p.created_at }}</small></div></div><p>{{ p.content }}</p>
+    {% for c in comments if c.post_id == p.id %}<div class="comment"><b>{{ c.author_name }}</b> {{ c.content }} <small>{{ c.created_at }}</small></div>{% endfor %}
+    <form class="comment-form" method="post" action="{{ url_for('community_comment', post_id=p.id) }}"><input name="content" placeholder="Write a comment..." required><button class="btn small">Comment</button></form>
+    </article>
+  {% else %}<p>No community posts yet. Be the first to post.</p>{% endfor %}
+  </div>
+</section>
+<section class="card">
+{% if current_role == 'student' %}
+  <h2>🔒 Private Student Chats</h2><p>Only you and the selected student can see these messages.</p>
+  {% for s in students %}<div class="person"><div class="avatar">{{ s.full_name[:1]|upper }}</div><div><b>{{ s.full_name }}</b><small>{{ s.specialty or 'Specialty not set' }} • {{ s.year or 'Year not set' }}</small></div><a class="btn small" href="{{ url_for('student_private_chat', student_id=s.id) }}">Message</a></div>{% else %}<p>No other students yet.</p>{% endfor %}
+  <h3>📥 Recent Inbox</h3>{% for m in inbox[:5] %}<article><b>{{ m.sender_name }}</b><small>{{ m.created_at }}</small><p>{{ m.message }}</p><a class="btn small" href="{{ url_for('student_private_chat', student_id=m.sender_id) }}">Reply</a></article>{% else %}<p>No private messages.</p>{% endfor %}
+{% else %}
+  <h2>👮 Administrator Access</h2><p>You can participate in the group community. Private student-to-student chat is available from student dashboards.</p>
+{% endif %}
+</section>
+</div>{% endblock %}

@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Private Teacher Chat</span><h1>Chat with {{teacher.full_name}}</h1><p>Teacher • {{teacher.email}}</p></div></div>
+<section class="card chat-box"><div class="chat-messages">{% for m in messages %}<div class="chat-message {% if m.sender_id==session.get('user_id') %}mine{% endif %}"><b>{{m.sender_name}}</b><small>{{m.sender_role|capitalize}} • {{m.created_at}}</small><p>{{m.message}}</p></div>{% else %}<p>No messages yet. Start the conversation.</p>{% endfor %}</div><form method="post"><textarea name="message" placeholder="Write your message..." required></textarea><button class="btn">Send Message</button></form></section>
+{% endblock %}

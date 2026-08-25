@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block content %}
+<div class="formbox">
+  <span class="pill">Student Registration</span><h1>Create your CampusHub account</h1>
+  <p>Choose an existing option or type your own specialty and academic year. New values are saved automatically.</p>
+  <form method="post">
+    <input name="full_name" placeholder="Full name" required>
+    <input name="email" type="email" placeholder="Email" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <label>Specialty</label>
+    <input name="specialty" list="specialty-list" placeholder="e.g. Software Engineering" required>
+    <datalist id="specialty-list">{% for x in specialties %}<option value="{{x.name}}">{% endfor %}</datalist>
+    <label>Academic year</label>
+    <input name="year" list="year-list" placeholder="e.g. HND Year 1" required>
+    <datalist id="year-list">
+      {% for x in years %}<option value="{{x.name}}">{% endfor %}
+      <option value="HND Year 1"><option value="HND Year 2"><option value="HND Year 3">
+    </datalist>
+    <button class="btn">Create Student Account</button>
+  </form>
+</div>{% endblock %}

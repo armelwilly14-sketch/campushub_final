@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Teacher Communication</span><h1>Teacher Requests</h1><p>Send a request. An administrator must approve it before you can chat with the teacher.</p></div></div>
+<div class="two-col">
+<section class="card"><h2>➕ Send Request</h2><form method="post" action="{{url_for('send_teacher_request')}}"><select name="teacher_id" required><option value="">Select a teacher</option>{% for t in teachers %}<option value="{{t.id}}">{{t.full_name}}</option>{% endfor %}</select><button class="btn">Send Request</button></form></section>
+<section class="card"><h2>💬 Approved Chats</h2>{% for t in approved %}<div class="list-row"><b>{{t.teacher_name}}</b><a class="btn" href="{{url_for('student_teacher_chat',teacher_id=t.teacher_id)}}">Open Chat</a></div>{% else %}<p>No approved teacher chats yet.</p>{% endfor %}</section>
+</div>
+<section class="card"><h2>Request History</h2>{% for r in requests %}<div class="list-row"><div><b>{{r.teacher_name}}</b><small>{{r.status|capitalize}} • {{r.created_at}}</small></div>{% if r.status=='approved' %}<a class="btn" href="{{url_for('student_teacher_chat',teacher_id=r.teacher_id)}}">Chat</a>{% endif %}</div>{% else %}<p>No requests yet.</p>{% endfor %}</section>
+{% endblock %}

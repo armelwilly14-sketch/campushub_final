@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="{{language}}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{site.app_name}}{% if site.app_title %} — {{site.app_title}}{% endif %}</title>
+<link rel="stylesheet" href="{{url_for('static',filename='css/style.css')}}">
+</head>
+<body>
+<nav class="topbar">
+  <a class="brand" href="{{url_for('index')}}">{{site.app_name}}</a>
+  <button class="menu-btn" onclick="document.querySelector('.navlinks').classList.toggle('open')">☰</button>
+  <div class="navlinks">
+    <a href="{{url_for('about')}}">About</a><a href="{{url_for('contact')}}">Contact</a>
+    {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('student_dashboard')}}">Dashboard</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests')}}">Teacher Requests</a>{% endif %}
+    {% if session.get('user_id') and current_role=='teacher' %}<a href="{{url_for('teacher_dashboard')}}">Teacher Dashboard</a><a href="{{url_for('teacher_requests_view')}}">Student Requests</a>{% endif %}
+    {% if session.get('user_id') and current_role=='admin' %}<a href="{{url_for('admin_overview')}}">Admin</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('admin_teacher_requests')}}">Teacher Requests</a><a href="{{url_for('admin_chat')}}">Admin Chat</a>{% endif %}
+    <a class="{% if language == 'en' %}selected{% endif %}" href="{{url_for('set_language',lang='en')}}">EN</a><a class="{% if language == 'fr' %}selected{% endif %}" href="{{url_for('set_language',lang='fr')}}">FR</a>
+    <button class="theme-btn" onclick="toggleTheme()">☀/🌙</button>
+    {% if session.get('user_id') %}<a href="{{url_for('profile')}}">Profile</a><a href="{{url_for('logout')}}">Logout</a>{% else %}<a href="{{url_for('login')}}">Login</a>{% endif %}
+  </div>
+</nav>
+{% with messages=get_flashed_messages() %}{% for m in messages %}<div class="flash">{{m}}</div>{% endfor %}{% endwith %}
+<main>{% block content %}{% endblock %}</main>
+
+<script>
+const frenchTranslations={
+  'About':'À propos','Contact':'Contact','Dashboard':'Tableau de bord','Community':'Communauté','Teacher Requests':'Demandes aux enseignants','Teacher Dashboard':'Tableau de bord enseignant','Student Requests':'Demandes des étudiants','Admin':'Administration','Admin Chat':'Discussion admin','Profile':'Profil','Login':'Connexion','Logout':'Déconnexion','Student Registration':'Inscription étudiant','Admin Registration':'Inscription administrateur',
+  'EdTech':'EdTech','Campus Information Management System':'Système de gestion des informations du campus','Announcements, timetables, past papers, results, hall distribution and student communication.':'Annonces, emplois du temps, anciens sujets, résultats, répartition des salles et communication étudiante.','Student Registration':'Inscription étudiant','Admin Registration':'Inscription administrateur',
+  'Create your CampusHub account':'Créez votre compte CampusHub','Choose an existing option or type your own specialty and academic year. New values are saved automatically.':'Choisissez une option existante ou saisissez votre spécialité et votre année académique. Les nouvelles valeurs sont enregistrées automatiquement.','Full name':'Nom complet','Email':'E-mail','Password':'Mot de passe','Specialty':'Spécialité','Academic year':'Année académique','Create Student Account':'Créer le compte étudiant','e.g. Software Engineering':'ex. Génie logiciel','e.g. HND Year 1':'ex. HND Année 1',
+  'Administrator Registration':'Inscription administrateur','Issued password required.':'Mot de passe fourni requis.','Issued administrator password':'Mot de passe administrateur fourni','Create Administrator':'Créer l’administrateur','Login':'Connexion',
+  'My Account':'Mon compte','Edit Profile':'Modifier le profil','Update your personal information and password.':'Mettez à jour vos informations personnelles et votre mot de passe.','Profile information':'Informations du profil','Profile picture':'Photo de profil','Type a new specialty if needed':'Saisissez une nouvelle spécialité si nécessaire','HND Year 1, HND Year 2, HND Year 3...':'HND Année 1, HND Année 2, HND Année 3...','Change password':'Changer le mot de passe','Leave these fields empty if you do not want to change your password.':'Laissez ces champs vides si vous ne souhaitez pas changer votre mot de passe.','Current password':'Mot de passe actuel','New password':'Nouveau mot de passe','Save Changes':'Enregistrer les modifications',
+  'Student Portal':'Portail étudiant','Welcome,':'Bienvenue,','Campus Community':'Communauté du campus','Group Community':'Communauté de groupe','Private Student Chats':'Discussions privées entre étudiants','Official Messages':'Messages officiels','Timetables':'Emplois du temps','Past Papers':'Anciens sujets','Results':'Résultats','Hall Distribution':'Répartition des salles','📢 Announcements':'📢 Annonces','📅 Timetables':'📅 Emplois du temps','📚 Past Papers':'📚 Anciens sujets','📊 Results':'📊 Résultats','✉️ Official Messages':'✉️ Messages officiels','🏫 Hall Distribution':'🏫 Répartition des salles','👥 Campus Community':'👥 Communauté du campus','View / Download PDF':'Voir / télécharger le PDF','Open':'Ouvrir','Attachment':'Pièce jointe','From:':'De :','Posted by':'Publié par','No announcements.':'Aucune annonce.','No timetable uploaded.':'Aucun emploi du temps téléversé.','No past papers.':'Aucun ancien sujet.','No results yet.':'Aucun résultat pour le moment.','No official messages.':'Aucun message officiel.','No hall distribution.':'Aucune répartition des salles.',
+  'Private Chat':'Discussion privée','Only you and':'Vous et','can see this conversation.':'pouvez voir cette conversation.','Write a private message...':'Écrire un message privé...','Send':'Envoyer','No messages yet.':'Aucun message pour le moment.','Teacher Communication':'Communication avec les enseignants','Send Request':'Envoyer une demande','Select a teacher':'Sélectionner un enseignant','Approved Chats':'Discussions approuvées','Open Chat':'Ouvrir la discussion','No approved teacher chats yet.':'Aucune discussion enseignant approuvée.','Request History':'Historique des demandes','Chat':'Discuter','No requests yet.':'Aucune demande pour le moment.','Private Teacher Chat':'Discussion privée avec l’enseignant','Chat with':'Discuter avec','Send Message':'Envoyer le message','Start the conversation.':'Commencez la conversation.',
+  'Teacher Portal':'Portail enseignant','Teacher Dashboard':'Tableau de bord enseignant','View Student Requests':'Voir les demandes des étudiants','Approved Chat':'Discussion approuvée','Student Chat Requests':'Demandes de discussion des étudiants','Waiting for admin':'En attente de l’administrateur','Rejected':'Refusée','Only requests approved by an administrator can be used for teacher-student chat.':'Seules les demandes approuvées par un administrateur peuvent être utilisées pour discuter avec un enseignant.',
+  'Administration':'Administration','Overview':'Vue d’ensemble','Students':'Étudiants','Teachers':'Enseignants','Academic Content':'Contenu académique','Communication':'Communication','Academic Setup':'Configuration académique','Settings':'Paramètres','Content Management':'Gestion du contenu','Application Settings':'Paramètres de l’application','Teacher Chat Requests':'Demandes de discussion enseignant','Approve':'Approuver','Delete':'Supprimer','Name':'Nom','Year':'Année','Specialties, Years & Courses':'Spécialités, années et cours','No sent messages.':'Aucun message envoyé.','No other students yet.':'Aucun autre étudiant.','No private messages.':'Aucun message privé.',
+  '📢 Announcements':'📢 Annonces','📅 Timetables':'📅 Emplois du temps','📚 Past Papers':'📚 Anciens sujets'
+};
+function translatePage(){
+  if(document.documentElement.lang!=='fr')return;
+  const translate=value=>frenchTranslations[value.trim()]||value;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(node=>{if(node.parentElement?.tagName!=='SCRIPT'&&node.parentElement?.tagName!=='STYLE'){const translated=translate(node.nodeValue);if(translated!==node.nodeValue.trim())node.nodeValue=node.nodeValue.replace(node.nodeValue.trim(),translated);}});
+  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(element=>['placeholder','title','aria-label'].forEach(attribute=>{if(element.hasAttribute(attribute))element.setAttribute(attribute,translate(element.getAttribute(attribute)));}));
+}
+translatePage();
+function toggleTheme(){document.body.classList.toggle('dark');localStorage.theme=document.body.classList.contains('dark')?'dark':'light'}
+if(localStorage.theme==='dark')document.body.classList.add('dark');
+</script>
+</body></html>

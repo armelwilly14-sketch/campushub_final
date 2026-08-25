@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Teacher Portal</span><h1>Student Chat Requests</h1><p>Only requests approved by an administrator can be used for teacher-student chat.</p></div></div>
+<section class="card">{% for r in requests %}<div class="list-row"><div><b>{{r.student_name}}</b><small>{{r.specialty}} — {{r.year}} • {{r.status|capitalize}}</small></div>{% if r.status=='approved' %}<a class="btn" href="{{url_for('teacher_student_chat',student_id=r.student_id)}}">Open Chat</a>{% elif r.status=='pending' %}<span class="pill">Waiting for admin</span>{% else %}<span class="pill">Rejected</span>{% endif %}</div>{% else %}<p>No requests yet.</p>{% endfor %}</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">My Account</span><h1>Edit Profile</h1><p>Update your personal information and password.</p></div></div>
+<div class="formbox">
+<form method="post" enctype="multipart/form-data">
+<h2>Profile information</h2><label>Profile picture<input type="file" name="profile_picture" accept="image/*"></label>
+<label>Full name<input name="full_name" value="{{user.full_name}}" required></label>
+<label>Email<input type="email" name="email" value="{{user.email}}" required></label>
+{% if user.role == 'student' %}
+<label>Specialty<input name="specialty" list="specialty-list" value="{{user.specialty or ''}}" placeholder="Type a new specialty if needed"><datalist id="specialty-list">{% for x in specialties %}<option value="{{x.name}}">{% endfor %}</datalist></label>
+<label>Academic year<input name="year" list="year-list" value="{{user.year or ''}}" placeholder="HND Year 1, HND Year 2, HND Year 3..."><datalist id="year-list">{% for x in years %}<option value="{{x.name}}">{% endfor %}</datalist></label>
+{% endif %}
+<hr>
+<h2>Change password</h2><p>Leave these fields empty if you do not want to change your password.</p>
+<label>Current password<input type="password" name="current_password"></label>
+<label>New password<input type="password" name="new_password" minlength="6"></label>
+<button class="btn">Save Changes</button>
+</form></div>
+{% endblock %}
