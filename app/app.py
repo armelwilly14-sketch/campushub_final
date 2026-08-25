@@ -656,6 +656,8 @@ def contact(): return render_template("public/contact.html", contact=one("SELECT
 def uploaded_file(folder, filename): return send_from_directory(os.path.join(UPLOAD, folder), filename)
 @app.route("/logout")
 def logout(): session.clear(); return redirect(url_for("index"))
+
+
 @app.route("/set-language/<lang>")
 def set_language(lang):
     response = redirect(request.referrer or url_for("index"))
@@ -663,8 +665,6 @@ def set_language(lang):
         session["language"] = lang
         response.set_cookie("language", lang, max_age=60 * 60 * 24 * 365, samesite="Lax")
     return response
-
-
 
 
 
