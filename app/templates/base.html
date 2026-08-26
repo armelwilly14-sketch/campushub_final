@@ -12,8 +12,9 @@
   <div class="navlinks">
     <a href="{{url_for('about')}}">About</a><a href="{{url_for('contact')}}">Contact</a>
     {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('student_dashboard')}}">Dashboard</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests')}}">Teacher Requests</a>{% endif %}
-    {% if session.get('user_id') and current_role=='teacher' %}<a href="{{url_for('teacher_dashboard')}}">Teacher Dashboard</a><a href="{{url_for('teacher_requests_view')}}">Student Requests</a>{% endif %}
-    {% if session.get('user_id') and current_role=='admin' %}<a href="{{url_for('admin_overview')}}">Admin</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('admin_teacher_requests')}}">Teacher Requests</a><a href="{{url_for('admin_chat')}}">Admin Chat</a>{% endif %}
+    {% if session.get('user_id') and current_role=='teacher' %}<a href="{{url_for('teacher_dashboard')}}">Teacher Dashboard</a><a href="{{url_for('teacher_directory')}}">Teachers</a><a href="{{url_for('reports')}}">Report Problem</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests_view')}}">Student Requests</a>{% endif %}
+    {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('reports')}}">Report Problem</a>{% endif %}
+    {% if session.get('user_id') and current_role=='admin' %}<a href="{{url_for('admin_overview')}}">Admin</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('admin_teacher_requests')}}">Teacher Requests</a><a href="{{url_for('admin_reports')}}">Problem Reports</a><a href="{{url_for('admin_chat')}}">Admin Chat</a>{% endif %}
     <a class="{% if language == 'en' %}selected{% endif %}" href="{{url_for('set_language',lang='en')}}">EN</a><a class="{% if language == 'fr' %}selected{% endif %}" href="{{url_for('set_language',lang='fr')}}">FR</a>
     <button class="theme-btn" onclick="toggleTheme()">☀/🌙</button>
     {% if session.get('user_id') %}<a href="{{url_for('profile')}}">Profile</a><a href="{{url_for('logout')}}">Logout</a>{% else %}<a href="{{url_for('login')}}">Login</a>{% endif %}
@@ -23,28 +24,104 @@
 <main>{% block content %}{% endblock %}</main>
 
 <script>
-const frenchTranslations={
-  'About':'À propos','Contact':'Contact','Dashboard':'Tableau de bord','Community':'Communauté','Teacher Requests':'Demandes aux enseignants','Teacher Dashboard':'Tableau de bord enseignant','Student Requests':'Demandes des étudiants','Admin':'Administration','Admin Chat':'Discussion admin','Profile':'Profil','Login':'Connexion','Logout':'Déconnexion','Student Registration':'Inscription étudiant','Admin Registration':'Inscription administrateur',
-  'EdTech':'EdTech','Campus Information Management System':'Système de gestion des informations du campus','Announcements, timetables, past papers, results, hall distribution and student communication.':'Annonces, emplois du temps, anciens sujets, résultats, répartition des salles et communication étudiante.','Student Registration':'Inscription étudiant','Admin Registration':'Inscription administrateur',
-  'Create your CampusHub account':'Créez votre compte CampusHub','Choose an existing option or type your own specialty and academic year. New values are saved automatically.':'Choisissez une option existante ou saisissez votre spécialité et votre année académique. Les nouvelles valeurs sont enregistrées automatiquement.','Full name':'Nom complet','Email':'E-mail','Password':'Mot de passe','Specialty':'Spécialité','Academic year':'Année académique','Create Student Account':'Créer le compte étudiant','e.g. Software Engineering':'ex. Génie logiciel','e.g. HND Year 1':'ex. HND Année 1',
-  'Administrator Registration':'Inscription administrateur','Issued password required.':'Mot de passe fourni requis.','Issued administrator password':'Mot de passe administrateur fourni','Create Administrator':'Créer l’administrateur','Login':'Connexion',
-  'My Account':'Mon compte','Edit Profile':'Modifier le profil','Update your personal information and password.':'Mettez à jour vos informations personnelles et votre mot de passe.','Profile information':'Informations du profil','Profile picture':'Photo de profil','Type a new specialty if needed':'Saisissez une nouvelle spécialité si nécessaire','HND Year 1, HND Year 2, HND Year 3...':'HND Année 1, HND Année 2, HND Année 3...','Change password':'Changer le mot de passe','Leave these fields empty if you do not want to change your password.':'Laissez ces champs vides si vous ne souhaitez pas changer votre mot de passe.','Current password':'Mot de passe actuel','New password':'Nouveau mot de passe','Save Changes':'Enregistrer les modifications',
-  'Student Portal':'Portail étudiant','Welcome,':'Bienvenue,','Campus Community':'Communauté du campus','Group Community':'Communauté de groupe','Private Student Chats':'Discussions privées entre étudiants','Official Messages':'Messages officiels','Timetables':'Emplois du temps','Past Papers':'Anciens sujets','Results':'Résultats','Hall Distribution':'Répartition des salles','📢 Announcements':'📢 Annonces','📅 Timetables':'📅 Emplois du temps','📚 Past Papers':'📚 Anciens sujets','📊 Results':'📊 Résultats','✉️ Official Messages':'✉️ Messages officiels','🏫 Hall Distribution':'🏫 Répartition des salles','👥 Campus Community':'👥 Communauté du campus','View / Download PDF':'Voir / télécharger le PDF','Open':'Ouvrir','Attachment':'Pièce jointe','From:':'De :','Posted by':'Publié par','No announcements.':'Aucune annonce.','No timetable uploaded.':'Aucun emploi du temps téléversé.','No past papers.':'Aucun ancien sujet.','No results yet.':'Aucun résultat pour le moment.','No official messages.':'Aucun message officiel.','No hall distribution.':'Aucune répartition des salles.',
-  'Private Chat':'Discussion privée','Only you and':'Vous et','can see this conversation.':'pouvez voir cette conversation.','Write a private message...':'Écrire un message privé...','Send':'Envoyer','No messages yet.':'Aucun message pour le moment.','Teacher Communication':'Communication avec les enseignants','Send Request':'Envoyer une demande','Select a teacher':'Sélectionner un enseignant','Approved Chats':'Discussions approuvées','Open Chat':'Ouvrir la discussion','No approved teacher chats yet.':'Aucune discussion enseignant approuvée.','Request History':'Historique des demandes','Chat':'Discuter','No requests yet.':'Aucune demande pour le moment.','Private Teacher Chat':'Discussion privée avec l’enseignant','Chat with':'Discuter avec','Send Message':'Envoyer le message','Start the conversation.':'Commencez la conversation.',
-  'Teacher Portal':'Portail enseignant','Teacher Dashboard':'Tableau de bord enseignant','View Student Requests':'Voir les demandes des étudiants','Approved Chat':'Discussion approuvée','Student Chat Requests':'Demandes de discussion des étudiants','Waiting for admin':'En attente de l’administrateur','Rejected':'Refusée','Only requests approved by an administrator can be used for teacher-student chat.':'Seules les demandes approuvées par un administrateur peuvent être utilisées pour discuter avec un enseignant.',
-  'Administration':'Administration','Overview':'Vue d’ensemble','Students':'Étudiants','Teachers':'Enseignants','Academic Content':'Contenu académique','Communication':'Communication','Academic Setup':'Configuration académique','Settings':'Paramètres','Content Management':'Gestion du contenu','Application Settings':'Paramètres de l’application','Teacher Chat Requests':'Demandes de discussion enseignant','Approve':'Approuver','Delete':'Supprimer','Name':'Nom','Year':'Année','Specialties, Years & Courses':'Spécialités, années et cours','No sent messages.':'Aucun message envoyé.','No other students yet.':'Aucun autre étudiant.','No private messages.':'Aucun message privé.',
-  '📢 Announcements':'📢 Annonces','📅 Timetables':'📅 Emplois du temps','📚 Past Papers':'📚 Anciens sujets'
+const frenchTranslations = {
+  about: 'À propos', contact: 'Contact', dashboard: 'Tableau de bord', community: 'Communauté',
+  teacher: 'Enseignant', teachers: 'Enseignants', student: 'Étudiant', students: 'Étudiants',
+  requests: 'Demandes', 'teacher requests': 'Demandes aux enseignants',
+  'student requests': 'Demandes des étudiants', admin: 'Administration', 'admin chat': 'Chat admin',
+  profile: 'Profil', login: 'Connexion', logout: 'Déconnexion', register: 'S’inscrire',
+  'student registration': 'Inscription étudiant', 'admin registration': 'Inscription administrateur',
+  'campus hub': 'CampusHub', 'full name': 'Nom complet', email: 'E-mail', password: 'Mot de passe',
+  specialty: 'Spécialité', 'academic year': 'Année académique', 'create student account': 'Créer le compte étudiant',
+  'create administrator': 'Créer l’administrateur', 'administrator registration': 'Inscription administrateur',
+  'issued administrator password': 'Mot de passe administrateur fourni', 'current password': 'Mot de passe actuel',
+  'new password': 'Nouveau mot de passe', 'save changes': 'Enregistrer les modifications',
+  'welcome': 'Bienvenue', 'announcements': 'Annonces', 'timetables': 'Emplois du temps',
+  'past papers': 'Anciens sujets', 'results': 'Résultats', 'hall distribution': 'Répartition des salles',
+  'official messages': 'Messages officiels', 'private chat': 'Discussion privée', 'send': 'Envoyer',
+  'send request': 'Envoyer une demande', 'select a teacher': 'Sélectionner un enseignant',
+  'approved chats': 'Discussions approuvées', 'request history': 'Historique des demandes',
+  'chat with': 'Discuter avec', 'start the conversation': 'Commencez la conversation',
+  'waiting for admin': 'En attente de l’administrateur', rejected: 'Refusée',
+  overview: 'Vue d’ensemble', communication: 'Communication', settings: 'Paramètres',
+  'application settings': 'Paramètres de l’application', 'academic setup': 'Configuration académique',
+  'content management': 'Gestion du contenu', 'teacher chat requests': 'Demandes de discussion enseignant',
+  approve: 'Approuver', delete: 'Supprimer', name: 'Nom', year: 'Année',
+  'specialties, years & courses': 'Spécialités, années et cours', search: 'Rechercher',
+  submit: 'Soumettre', cancel: 'Annuler', close: 'Fermer', reset: 'Réinitialiser', save: 'Enregistrer',
+  edit: 'Modifier', update: 'Mettre à jour', create: 'Créer', add: 'Ajouter', back: 'Retour',
+  next: 'Suivant', previous: 'Précédent', yes: 'Oui', no: 'Non', done: 'Terminé',
+  status: 'Statut', date: 'Date', title: 'Titre', message: 'Message', subject: 'Objet',
+  'please complete all registration fields': 'Veuillez remplir tous les champs d’inscription.',
+  'this email is already registered': 'Cet e-mail est déjà inscrit.',
+  'student account created successfully': 'Compte étudiant créé avec succès.',
+  'invalid login': 'Identifiants invalides.', 'contact us': 'Contactez-nous', 'about us': 'À propos de nous',
+  'campushub admin': 'Administration CampusHub', 'admin control': 'Contrôle admin',
+  'campushub control center': 'Centre de contrôle CampusHub',
+  'manage academic content, users, communication and application settings from one organised workspace.': 'Gérez le contenu académique, les utilisateurs, la communication et les paramètres de l’application depuis un espace de travail centralisé.',
+  'teacher full name': 'Nom complet de l’enseignant', 'teacher email': 'E-mail de l’enseignant',
+  'temporary password': 'Mot de passe temporaire', 'create teacher': 'Créer l’enseignant',
+  'student messages': 'Messages étudiants', 'application settings': 'Paramètres de l’application',
+  'quick actions': 'Actions rapides', 'manage content': 'Gérer le contenu', 'open community': 'Ouvrir la communauté',
+  'administrator chat': 'Chat administrateur', 'all specialties': 'Toutes les spécialités', 'all years': 'Toutes les années',
+  'all': 'Tous', 'student': 'Étudiant', 'course': 'Cours', 'score': 'Note', 'grade': 'Note finale',
+  'semester': 'Semestre', 'send result': 'Envoyer le résultat', 'send official student message': 'Envoyer un message officiel à l’étudiant',
+  'application, about & contact': 'Application, À propos et Contact', 'about title': 'Titre À propos',
+  'about content': 'Contenu À propos', 'contact email': 'E-mail de contact', 'phone': 'Téléphone',
+  'address': 'Adresse', 'contact information': 'Informations de contact', 'specialties & courses': 'Spécialités et cours',
+  'use the official academic levels:': 'Utilisez les niveaux académiques officiels :', 'add another year if needed': 'Ajoutez une autre année si nécessaire',
+  'add year': 'Ajouter une année', 'course code': 'Code du cours', 'course name': 'Nom du cours', 'add course': 'Ajouter un cours',
+  'save settings': 'Enregistrer les paramètres', 'publish': 'Publier', 'upload pdf': 'Téléverser le PDF', 'upload': 'Téléverser'
 };
-function translatePage(){
-  if(document.documentElement.lang!=='fr')return;
-  const translate=value=>frenchTranslations[value.trim()]||value;
-  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
-  const nodes=[]; while(walker.nextNode())nodes.push(walker.currentNode);
-  nodes.forEach(node=>{if(node.parentElement?.tagName!=='SCRIPT'&&node.parentElement?.tagName!=='STYLE'){const translated=translate(node.nodeValue);if(translated!==node.nodeValue.trim())node.nodeValue=node.nodeValue.replace(node.nodeValue.trim(),translated);}});
-  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(element=>['placeholder','title','aria-label'].forEach(attribute=>{if(element.hasAttribute(attribute))element.setAttribute(attribute,translate(element.getAttribute(attribute)));}));
+
+const translationPattern = new RegExp(
+  Object.keys(frenchTranslations).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).sort((a, b) => b.length - a.length).join('|'),
+  'gi'
+);
+
+function translateText(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value.replace(translationPattern, (match) => {
+    const lookup = match.toLowerCase();
+    return frenchTranslations[lookup] || match;
+  });
 }
-translatePage();
+
+function translatePage() {
+  if (document.documentElement.lang !== 'fr') return;
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+  const nodes = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    const parent = node.parentElement;
+    if (!parent || !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) {
+      nodes.push(node);
+    }
+  }
+
+  nodes.forEach((node) => {
+    const value = node.nodeValue || '';
+    const translated = translateText(value);
+    if (translated !== value) node.nodeValue = translated;
+  });
+
+  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach((element) => {
+    ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
+      if (!element.hasAttribute(attribute)) return;
+      const original = element.getAttribute(attribute) || '';
+      const translated = translateText(original);
+      if (translated !== original) element.setAttribute(attribute, translated);
+    });
+  });
+}
+
 function toggleTheme(){document.body.classList.toggle('dark');localStorage.theme=document.body.classList.contains('dark')?'dark':'light'}
 if(localStorage.theme==='dark')document.body.classList.add('dark');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', translatePage);
+} else {
+  translatePage();
+}
 </script>
 </body></html>

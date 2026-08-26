@@ -156,7 +156,9 @@ def admin_register():
 def login():
     if request.method == "POST":
         u = one("SELECT * FROM users WHERE email=%s", (request.form["email"],))
-        if u and check_password_hash(u["password"], request.form["password"]):
+        if u and (u.get("is_banned") or u.get("is_suspended")):
+            flash("This account is suspended. Contact an administrator.")
+        elif u and check_password_hash(u["password"], request.form["password"]):
             session.update(user_id=u["id"], user_name=u["full_name"], role=u["role"],
                            specialty_id=u["specialty_id"], year_id=u["year_id"])
             if u["role"] == "admin": return redirect(url_for("admin_dashboard"))
@@ -186,12 +188,12 @@ def student_dashboard():
 @app.route("/community")
 @required()
 def community():
-    students = rows("SELECT u.id,u.full_name,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' AND u.id<>%s ORDER BY u.full_name", (session["user_id"],))
-    posts = rows("""SELECT p.*,u.full_name author_name,s.name specialty,y.name year
+    students = rows("SELECT u.id,u.full_name,u.avatar,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' AND u.id<>%s ORDER BY u.full_name", (session["user_id"],))
+    posts = rows("""SELECT p.*,u.full_name author_name,u.avatar author_avatar,s.name specialty,y.name year
         FROM community_posts p JOIN users u ON p.user_id=u.id
         LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id
         ORDER BY p.created_at DESC""")
-    comments = rows("""SELECT c.*,u.full_name author_name FROM community_comments c JOIN users u ON c.user_id=u.id ORDER BY c.created_at ASC""")
+    comments = rows("""SELECT c.*,u.full_name author_name,u.avatar author_avatar FROM community_comments c JOIN users u ON c.user_id=u.id ORDER BY c.created_at ASC""")
     inbox = rows("SELECT d.*,u.full_name sender_name FROM student_messages d JOIN users u ON d.sender_id=u.id WHERE d.receiver_id=%s ORDER BY d.created_at DESC", (session["user_id"],))
     sent = rows("SELECT d.*,u.full_name receiver_name FROM student_messages d JOIN users u ON d.receiver_id=u.id WHERE d.sender_id=%s ORDER BY d.created_at DESC", (session["user_id"],))
     return render_template("student/community.html", students=students, posts=posts, comments=comments, inbox=inbox, sent=sent)
@@ -303,6 +305,19 @@ def teacher_requests_view():
         WHERE r.teacher_id=%s ORDER BY r.created_at DESC""", (session["user_id"],))
     return render_template("teacher/requests.html", requests=requests_)
 
+@app.post("/teacher/request/<int:id>/respond")
+@required("teacher")
+def teacher_request_response(id):
+    response = request.form.get("teacher_response", "").strip()
+    if not response:
+        flash("Write a response before sending it.")
+    else:
+        updated = execute("UPDATE teacher_requests SET teacher_response=%s WHERE id=%s AND teacher_id=%s",
+                          (response, id, session["user_id"]))
+        if updated is not None:
+            flash("Response sent to the student and administrator.")
+    return redirect(url_for("teacher_requests_view"))
+
 
 @app.route("/teacher/chat/<int:student_id>", methods=["GET", "POST"])
 @required("teacher")
@@ -349,8 +364,8 @@ def admin_teacher_request_action(id, action):
 
 def admin_data():
     return dict(
-        students=rows("SELECT u.id,u.full_name,u.email,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' ORDER BY s.name,y.id,u.full_name"),
-        teachers=rows("SELECT id,full_name,email FROM users WHERE role='teacher' ORDER BY full_name"),
+        students=rows("SELECT u.id,u.full_name,u.email,u.avatar,u.is_banned,u.is_suspended,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' ORDER BY s.name,y.id,u.full_name"),
+        teachers=rows("SELECT id,full_name,email,avatar,is_suspended FROM users WHERE role='teacher' ORDER BY full_name"),
         admins=rows("SELECT id,full_name,email FROM users WHERE role='admin' ORDER BY full_name"),
         specialties=rows("SELECT * FROM specialties ORDER BY name"),
         years=rows("SELECT * FROM years ORDER BY id"),
@@ -414,6 +429,65 @@ def add_teacher():
     except Exception:
         flash("Could not create teacher account. The email may already exist.")
     return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/teacher/<int:id>/edit")
+@required("admin")
+def edit_teacher(id):
+    teacher = one("SELECT id FROM users WHERE id=%s AND role='teacher'", (id,))
+    if not teacher:
+        flash("Teacher not found.")
+        return redirect(url_for("admin_teachers"))
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+    if not full_name or not email:
+        flash("Teacher name and email are required.")
+        return redirect(url_for("admin_teachers"))
+    try:
+        if password:
+            execute("UPDATE users SET full_name=%s,email=%s,password=%s WHERE id=%s AND role='teacher'",
+                    (full_name, email, generate_password_hash(password), id))
+        else:
+            execute("UPDATE users SET full_name=%s,email=%s WHERE id=%s AND role='teacher'",
+                    (full_name, email, id))
+        flash("Teacher account updated.")
+    except Exception:
+        flash("Could not update teacher account. The email may already exist.")
+    return redirect(url_for("admin_teachers"))
+
+
+@app.post("/admin/teacher/<int:id>/delete")
+@required("admin")
+def delete_teacher(id):
+    deleted = execute("DELETE FROM users WHERE id=%s AND role='teacher'", (id,))
+    flash("Teacher account deleted." if deleted is not None else "Teacher not found.")
+    return redirect(url_for("admin_teachers"))
+
+
+@app.post("/admin/student/<int:id>/ban")
+@required("admin")
+def toggle_student_ban(id):
+    student = one("SELECT id,is_banned FROM users WHERE id=%s AND role='student'", (id,))
+    if not student:
+        flash("Student not found.")
+    else:
+        execute("UPDATE users SET is_banned=NOT is_banned WHERE id=%s AND role='student'", (id,))
+        flash("Student account unbanned." if student["is_banned"] else "Student account banned.")
+    return redirect(url_for("admin_students"))
+
+
+@app.post("/admin/user/<int:id>/suspend")
+@required("admin")
+def toggle_user_suspension(id):
+    user = one("SELECT id,role,is_suspended FROM users WHERE id=%s AND role IN ('student','teacher')", (id,))
+    if not user:
+        flash("User not found.")
+    else:
+        execute("UPDATE users SET is_suspended=NOT is_suspended WHERE id=%s AND role IN ('student','teacher')", (id,))
+        flash(("Teacher" if user["role"] == "teacher" else "Student") +
+              (" suspension lifted." if user["is_suspended"] else " account suspended."))
+    return redirect(url_for("admin_teachers" if user and user["role"] == "teacher" else "admin_students"))
 
 
 @app.post("/admin/announcement")
@@ -531,28 +605,107 @@ def send_message():
 @app.route("/teacher")
 @required("teacher")
 def teacher_dashboard():
-    students = rows("SELECT u.id,u.full_name,u.email,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' ORDER BY s.name,y.id,u.full_name")
+    students = rows("SELECT u.id,u.full_name,u.email,u.avatar,s.name specialty,y.name year FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id WHERE u.role='student' ORDER BY s.name,y.id,u.full_name")
     sent = rows("SELECT m.*,u.full_name student_name FROM messages m JOIN users u ON m.student_id=u.id WHERE m.sender_id=%s ORDER BY m.created_at DESC", (session["user_id"],))
     approved_students = rows("""SELECT r.student_id,s.full_name student_name,sp.name specialty,y.name year FROM teacher_requests r JOIN users s ON r.student_id=s.id LEFT JOIN specialties sp ON s.specialty_id=sp.id LEFT JOIN years y ON s.year_id=y.id WHERE r.teacher_id=%s AND r.status='approved' ORDER BY s.full_name""", (session["user_id"],))
-    return render_template("teacher/dashboard.html", students=students, sent=sent, approved_students=approved_students)
+    notes = rows("SELECT n.*,u.full_name teacher_name FROM teacher_notes n JOIN users u ON n.created_by=u.id ORDER BY n.created_at DESC")
+    announcements = rows("SELECT * FROM announcements ORDER BY created_at DESC")
+    timetables = rows("SELECT t.*,s.name specialty,y.name year FROM timetables t JOIN specialties s ON t.specialty_id=s.id JOIN years y ON t.year_id=y.id ORDER BY t.created_at DESC")
+    papers = rows("SELECT p.*,c.name course FROM past_papers p LEFT JOIN courses c ON p.course_id=c.id ORDER BY p.created_at DESC")
+    results = rows("SELECT r.*,c.name course,s.full_name student_name FROM results r JOIN users s ON r.student_id=s.id LEFT JOIN courses c ON r.course_id=c.id ORDER BY r.created_at DESC")
+    halls = rows("SELECT h.*,c.name course FROM hall_distribution h LEFT JOIN courses c ON h.course_id=c.id ORDER BY h.id DESC")
+    admins = rows("SELECT id,full_name,email,avatar FROM users WHERE role='admin' ORDER BY full_name")
+    admin_messages = rows("SELECT m.*,u.full_name sender_name FROM staff_messages m JOIN users u ON m.sender_id=u.id WHERE m.receiver_id=%s ORDER BY m.created_at DESC", (session["user_id"],))
+    return render_template("teacher/dashboard.html", students=students, sent=sent, approved_students=approved_students,
+                           notes=notes, announcements=announcements, timetables=timetables, papers=papers,
+                           results=results, halls=halls, admins=admins, admin_messages=admin_messages)
+
+
+@app.route("/teacher/teachers")
+@required("teacher")
+def teacher_directory():
+    teachers = rows("""SELECT u.id,u.full_name,u.email,u.avatar,s.name specialty,y.name year
+        FROM users u LEFT JOIN specialties s ON u.specialty_id=s.id LEFT JOIN years y ON u.year_id=y.id
+        WHERE u.role='teacher' AND u.id<>%s ORDER BY u.full_name""", (session["user_id"],))
+    return render_template("teacher/teachers.html", teachers=teachers)
+
+
+@app.post("/teacher/note")
+@required("teacher")
+def add_teacher_note():
+    f = request.files.get("file")
+    if not f or not f.filename or ext(f.filename) not in {"pdf", "jpg", "jpeg", "png", "gif", "webp"}:
+        flash("Notes must be a PDF or image.")
+        return redirect(url_for("teacher_dashboard"))
+    filename = save_file(f, "teacher_notes", {"pdf", "jpg", "jpeg", "png", "gif", "webp"})
+    execute("INSERT INTO teacher_notes(title,description,filename,file_type,created_by) VALUES(%s,%s,%s,%s,%s)",
+            (request.form.get("title", "").strip(), request.form.get("description", "").strip(),
+             filename, ext(f.filename), session["user_id"]))
+    flash("Notes uploaded successfully.")
+    return redirect(url_for("teacher_dashboard"))
+
+
+@app.post("/teacher/admin-message")
+@required("teacher")
+def teacher_admin_message():
+    admin_id = request.form.get("receiver_id")
+    if not admin_id or not one("SELECT id FROM users WHERE id=%s AND role='admin'", (admin_id,)):
+        flash("Select a valid administrator.")
+    else:
+        execute("INSERT INTO staff_messages(sender_id,receiver_id,message) VALUES(%s,%s,%s)",
+                (session["user_id"], admin_id, request.form.get("message", "").strip()))
+        flash("Message sent to the administrator.")
+    return redirect(url_for("teacher_dashboard"))
 
 
 @app.post("/teacher/message")
 @required("teacher")
 def teacher_message():
-    # Legacy official-message endpoint: teacher-to-student messaging is permitted only
-    # when an administrator has approved the teacher-student request.
     student_id = int(request.form["student_id"])
-    approved = one("SELECT id FROM teacher_requests WHERE teacher_id=%s AND student_id=%s AND status='approved'",
-                   (session["user_id"], student_id))
-    if not approved:
-        flash("You can only message a student after an administrator approves the chat request.")
+    student = one("SELECT id FROM users WHERE id=%s AND role='student'", (student_id,))
+    if not student:
+        flash("Student not found.")
         return redirect(url_for("teacher_dashboard"))
     n, typ = save_message_attachment()
     if typ == "invalid": flash("Attachment must be PDF, DOCX or image."); return redirect(url_for("teacher_dashboard"))
     execute("INSERT INTO messages(sender_id,student_id,subject,message,attachment_filename,attachment_type) VALUES(%s,%s,%s,%s,%s,%s)",
             (session["user_id"], student_id, request.form["subject"], request.form["message"], n, typ))
+    flash("Message sent. The student must request approval before replying.")
     return redirect(url_for("teacher_dashboard"))
+
+
+@app.route("/reports", methods=["GET", "POST"])
+@required()
+def reports():
+    if request.method == "POST":
+        subject = request.form.get("subject", "").strip()
+        message = request.form.get("message", "").strip()
+        if not subject or not message:
+            flash("Add a subject and describe the problem.")
+        else:
+            execute("INSERT INTO issue_reports(reporter_id,subject,message) VALUES(%s,%s,%s)",
+                    (session["user_id"], subject, message))
+            flash("Your private report was sent to the administrators.")
+            return redirect(url_for("reports"))
+    reports_ = rows("""SELECT r.*,u.full_name reporter_name FROM issue_reports r
+        JOIN users u ON u.id=r.reporter_id WHERE r.reporter_id=%s ORDER BY r.created_at DESC""", (session["user_id"],))
+    return render_template("reports.html", reports=reports_)
+
+
+@app.route("/admin/reports", methods=["GET", "POST"])
+@required("admin")
+def admin_reports():
+    if request.method == "POST":
+        report_id = request.form.get("report_id")
+        reply = request.form.get("admin_reply", "").strip()
+        if reply:
+            execute("UPDATE issue_reports SET admin_reply=%s,status='resolved',resolved_at=NOW() WHERE id=%s",
+                    (reply, report_id))
+            flash("Report reply sent privately to the reporter.")
+        return redirect(url_for("admin_reports"))
+    reports_ = rows("""SELECT r.*,u.full_name reporter_name,u.email reporter_email,u.role reporter_role
+        FROM issue_reports r JOIN users u ON u.id=r.reporter_id ORDER BY r.created_at DESC""")
+    return render_template("admin/reports.html", reports=reports_)
 
 
 @app.route("/admin/chat", methods=["GET", "POST"])
@@ -673,9 +826,15 @@ def ensure_runtime_schema():
     db = get_db_connection(); c = db.cursor()
     statements = [
         "ALTER TABLE users MODIFY role ENUM('student','teacher','admin') NOT NULL DEFAULT 'student'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(255) NULL",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT FALSE",
         "CREATE TABLE IF NOT EXISTS staff_messages(id INT AUTO_INCREMENT PRIMARY KEY,sender_id INT NOT NULL,receiver_id INT NOT NULL,message TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE)",
         "CREATE TABLE IF NOT EXISTS student_messages(id INT AUTO_INCREMENT PRIMARY KEY,sender_id INT NOT NULL,receiver_id INT NOT NULL,message TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE)",
         "CREATE TABLE IF NOT EXISTS teacher_requests(id INT AUTO_INCREMENT PRIMARY KEY,student_id INT NOT NULL,teacher_id INT NOT NULL,status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',approved_by INT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,decided_at TIMESTAMP NULL,FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE,FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE CASCADE,FOREIGN KEY(approved_by) REFERENCES users(id) ON DELETE SET NULL)",
+        "CREATE TABLE IF NOT EXISTS teacher_notes(id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(200) NOT NULL,description TEXT,filename VARCHAR(255) NOT NULL,file_type VARCHAR(20) NOT NULL,created_by INT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)",
+        "CREATE TABLE IF NOT EXISTS issue_reports(id INT AUTO_INCREMENT PRIMARY KEY,reporter_id INT NOT NULL,subject VARCHAR(200) NOT NULL,message TEXT NOT NULL,status ENUM('open','resolved') NOT NULL DEFAULT 'open',admin_reply TEXT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,resolved_at TIMESTAMP NULL,FOREIGN KEY(reporter_id) REFERENCES users(id) ON DELETE CASCADE)",
         "CREATE TABLE IF NOT EXISTS teacher_student_messages(id INT AUTO_INCREMENT PRIMARY KEY,request_id INT NOT NULL,sender_id INT NOT NULL,receiver_id INT NOT NULL,message TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(request_id) REFERENCES teacher_requests(id) ON DELETE CASCADE,FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE)",
         "CREATE TABLE IF NOT EXISTS community_posts(id INT AUTO_INCREMENT PRIMARY KEY,user_id INT NOT NULL,content TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)",
         "CREATE TABLE IF NOT EXISTS community_comments(id INT AUTO_INCREMENT PRIMARY KEY,post_id INT NOT NULL,user_id INT NOT NULL,content TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(post_id) REFERENCES community_posts(id) ON DELETE CASCADE,FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)"

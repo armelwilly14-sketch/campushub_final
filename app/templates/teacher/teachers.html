@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Teacher Portal</span><h1>Teachers</h1><p>View the other teachers in CampusHub.</p></div><a class="btn" href="{{url_for('teacher_dashboard')}}">Back to Dashboard</a></div>
+<section class="card"><h2>Other Teachers</h2>{% for teacher in teachers %}<div class="person">{% if teacher.avatar %}<img class="avatar avatar-image" src="{{url_for('uploaded_file',folder='profiles',filename=teacher.avatar)}}" alt="{{teacher.full_name}}">{% else %}<div class="avatar">{{teacher.full_name[:1]|upper}}</div>{% endif %}<div><b>{{teacher.full_name}}</b><small>{{teacher.email}} - {{teacher.specialty or 'Specialty not set'}} - {{teacher.year or 'Year not set'}}</small></div></div>{% else %}<p>No other teachers yet.</p>{% endfor %}</section>
+{% endblock %}

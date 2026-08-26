@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Private Support</span><h1>Report a Problem</h1><p>Only you and the administrators can see these reports.</p></div></div>
+<div class="two-col"><section class="card"><h2>New Private Report</h2><form method="post"><input name="subject" placeholder="Subject" required><textarea name="message" placeholder="Describe the problem..." required></textarea><button class="btn">Send Private Report</button></form></section>
+<section class="card"><h2>Your Reports</h2>{% for report in reports %}<article><b>{{report.subject}}</b><small>{{report.status|title}} - {{report.created_at}}</small><p>{{report.message}}</p>{% if report.admin_reply %}<div class="comment"><b>Administrator reply</b><p>{{report.admin_reply}}</p></div>{% endif %}</article>{% else %}<p>You have not submitted any reports.</p>{% endfor %}</section></div>
+{% endblock %}
