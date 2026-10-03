@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% block content %}
+<div class="admin-shell">
+  {% include 'admin/_nav.html' %}
+  <div class="admin-main">
+    <div class="page-head"><div><span class="pill">Finance Management</span><h1>School Fees</h1><p>Set the fee due for each academic period, verify transfers, and track student balances.</p></div></div>
+
+    <section class="card admin-fee-schedule">
+      <h2>Official bank account for fee transfers</h2>
+      <p>Parents and students will see these details on the fee page. Submissions remain pending until finance verifies the transfer.</p>
+      <form class="form-grid" method="post" action="{{ url_for('admin_fees') }}">
+        <input type="hidden" name="action" value="save_bank_details">
+        <label>Bank name<input name="bank_name" maxlength="150" value="{{ bank_settings.bank_name }}" required></label>
+        <label>Account name<input name="account_name" maxlength="150" value="{{ bank_settings.account_name }}" required></label>
+        <label>Account number<input name="account_number" maxlength="80" value="{{ bank_settings.account_number }}" required></label>
+        <label>Branch (optional)<input name="branch" maxlength="150" value="{{ bank_settings.branch }}"></label>
+        <label>Currency (optional)<input name="currency" maxlength="12" placeholder="e.g. XAF" value="{{ bank_settings.currency }}"></label>
+        <button class="btn">Save bank details</button>
+      </form>
+    </section>
+
+    <section class="card admin-fee-schedule">
+      <h2>Set fee amount by academic period</h2>
+      <p>One fee schedule applies to all students for the selected period. Confirmed transfers count toward the paid total.</p>
+      <form class="form-grid" method="post" action="{{ url_for('admin_fees') }}">
+        <input type="hidden" name="action" value="set_schedule">
+        <label>Academic period<input name="payment_period" maxlength="100" placeholder="e.g. 2026/2027 · Semester 1" required></label>
+        <label>Total school fees{% if currency %} ({{ currency }}){% endif %}<input name="total_amount" type="number" min="0.01" step="0.01" required></label>
+        <button class="btn">Save fee schedule</button>
+      </form>
+      {% if schedules %}<div class="fee-schedule-tags">{% for schedule in schedules %}<span class="tag">{{ schedule.payment_period }} — {% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(schedule.total_amount) }}</span>{% endfor %}</div>{% else %}<p>No fee schedules created yet.</p>{% endif %}
+    </section>
+
+    <section class="card admin-fee-section">
+      <h2>Student balances</h2>
+      <p>Only confirmed transfers are counted as paid. Pending transfers are shown separately; remaining is fee due minus confirmed payments.</p>
+      <div class="table-wrap"><table class="fee-table"><thead><tr><th>Student</th><th>Matricule</th><th>Period</th><th>Fee due</th><th>Paid</th><th>Pending</th><th>Remaining</th></tr></thead><tbody>
+        {% for item in balances %}<tr><td>{{ item.full_name }}</td><td>{{ item.matricule or '—' }}</td><td>{{ item.payment_period }}</td><td>{% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(item.total_amount) }}</td><td>{% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(item.paid) }}</td><td>{% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(item.pending) }}</td><td><strong>{% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(item.remaining) }}</strong></td></tr>
+        {% else %}<tr><td colspan="7">Create a fee schedule to begin tracking balances.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+
+    <section class="card admin-fee-section">
+      <h2>Bank transfer submissions</h2>
+      <div class="table-wrap"><table class="fee-table"><thead><tr><th>Student</th><th>Matricule</th><th>Period</th><th>Amount</th><th>Reference</th><th>Submitted</th><th>Status</th><th>Receipt / review</th></tr></thead><tbody>
+        {% for item in submissions %}<tr><td>{{ item.student_name }}</td><td>{{ item.matricule or '—' }}</td><td>{{ item.payment_period }}</td><td>{% if currency %}{{ currency }} {% endif %}{{ '%.2f'|format(item.amount) }}</td><td>{{ item.bank_reference }}</td><td>{{ item.created_at }}</td><td><span class="fee-status {{ item.status }}">{{ item.status|capitalize }}</span></td><td>{% if item.receipt_filename %}<a href="{{ url_for('fee_receipt', payment_id=item.id) }}">Receipt</a>{% endif %}{% if item.status == 'pending' %}<form class="fee-review-actions" method="post" action="{{ url_for('admin_fees') }}"><input type="hidden" name="payment_id" value="{{ item.id }}"><button class="btn small" name="action" value="confirm">Confirm</button><button class="danger" name="action" value="reject">Reject</button></form>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="8">No transfer submissions yet.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

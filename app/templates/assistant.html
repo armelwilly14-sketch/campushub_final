@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">AI Assistant · {{ current_role|title }}</span><h1>CampusHub Assistant</h1><p>Ask about learning, teaching, school services, or supporting your student. The assistant cannot access your private school records.</p></div></div>
+<section class="card" style="max-width:900px;margin:0 auto 30px"><form method="post" action="{{ url_for('assistant') }}"><label for="question">Your question</label><textarea id="question" name="question" maxlength="4000" rows="5" required placeholder="How can I help you today?">{{ question }}</textarea><button class="btn">Ask Assistant</button></form>{% if error %}<div class="fee-notice" style="margin-top:16px">{{ error }}</div>{% endif %}{% if answer %}<article style="margin-top:24px"><h2>Assistant response</h2><p style="white-space:pre-wrap">{{ answer }}</p></article>{% endif %}</section>
+{% endblock %}

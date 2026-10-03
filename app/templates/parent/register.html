@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block content %}
+<div class="formbox">
+  <span class="pill">Parent Registration</span>
+  <h1>Create a parent account</h1>
+  <p>Link your account to your child's registered student matriculation number. Sign in later with that matricule and the password you set here.</p>
+  <form method="post">
+    <label for="full_name">Parent / guardian name</label>
+    <input id="full_name" name="full_name" autocomplete="name" required>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="email" required>
+    <label for="matricule">Child's matriculation / assigned number</label>
+    <input id="matricule" name="matricule" maxlength="50" required>
+    <label for="password">Create password</label>
+    <input id="password" name="password" type="password" minlength="6" autocomplete="new-password" required>
+    <button class="btn">Create Parent Account</button>
+  </form>
+</div>{% endblock %}

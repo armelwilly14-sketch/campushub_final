@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><span class="pill">Parent Chat · 3-hour session</span><h1>{{ chat.parent_name }}</h1><p>Parent of {{ chat.student_name }} · Session ends {{ chat.expires_at }}.</p></div><a class="btn secondary" href="{{ url_for('teacher_requests_view') }}">Back to Requests</a></div>
+<section class="card chat-box"><div class="chat-messages">{% for m in messages %}<div class="chat-message {% if m.sender_id==session.get('user_id') %}mine{% endif %}"><b>{{ m.sender_name }}</b><small>{{ m.sender_role|capitalize }} · {{ m.created_at }}</small><p>{{ m.message }}</p></div>{% else %}<p>No messages yet.</p>{% endfor %}</div><form method="post"><textarea name="message" placeholder="Write your message..." required></textarea><button class="btn">Send Message</button></form></section>
+{% endblock %}

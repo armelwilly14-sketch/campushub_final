@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block content %}
 <div class="page-head">
-  <div><span class="pill">Campus Community</span><h1>Campus Community</h1><p>Group discussion for students and administrators. Students can also privately chat with other students.</p></div>
-  {% if current_role == 'student' %}<a class="btn" href="{{ url_for('student_dashboard') }}">← Dashboard</a>{% else %}<a class="btn" href="{{ url_for('admin_overview') }}">← Admin</a>{% endif %}
+  <div><span class="pill">Campus Community</span><h1>Campus Community</h1><p>Group discussion for students, parents, and administrators. Students and linked parents can also privately chat with other students.</p></div>
+  {% if current_role == 'student' %}<a class="btn" href="{{ url_for('student_dashboard') }}">← Dashboard</a>{% elif current_role == 'parent' %}<a class="btn" href="{{ url_for('parent_dashboard') }}">← Parent Home</a>{% else %}<a class="btn" href="{{ url_for('admin_overview') }}">← Admin</a>{% endif %}
 </div>
 <div class="social-layout">
 <section class="card">
@@ -17,7 +17,7 @@
   </div>
 </section>
 <section class="card">
-{% if current_role == 'student' %}
+{% if current_role in ('student','parent') %}
   <h2>🔒 Private Student Chats</h2><p>Only you and the selected student can see these messages.</p>
   {% for s in students %}<div class="person">{% if s.avatar %}<img class="avatar avatar-image" src="{{url_for('uploaded_file',folder='profiles',filename=s.avatar)}}" alt="{{s.full_name}}">{% else %}<div class="avatar">{{ s.full_name[:1]|upper }}</div>{% endif %}<div><b>{{ s.full_name }}</b><small>{{ s.specialty or 'Specialty not set' }} • {{ s.year or 'Year not set' }}</small></div><a class="btn small" href="{{ url_for('student_private_chat', student_id=s.id) }}">Message</a></div>{% else %}<p>No other students yet.</p>{% endfor %}
   <h3>📥 Recent Inbox</h3>{% for m in inbox[:5] %}<article><b>{{ m.sender_name }}</b><small>{{ m.created_at }}</small><p>{{ m.message }}</p><a class="btn small" href="{{ url_for('student_private_chat', student_id=m.sender_id) }}">Reply</a></article>{% else %}<p>No private messages.</p>{% endfor %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head">
+  <div><span class="pill">Parent Portal</span><h1>Welcome, {{ session.get('user_name') }}</h1><p>Linked student: {{ child.full_name }} · Matricule {{ child.matricule }}</p></div>
+  <div><a class="btn" href="{{ url_for('fee_payment') }}">Pay / View Remaining Fees</a><a class="btn secondary" href="{{ url_for('parent_student_page') }}">View Student Page & Results</a><a class="btn" href="{{ url_for('teacher_requests') }}">Teacher Requests</a><a class="btn" href="{{ url_for('parent_teacher_requests') }}">Parent Chat Request</a><a class="btn secondary" href="{{ url_for('community') }}">Community & Student Chats</a><a class="btn secondary" href="{{ url_for('reports') }}">Report Problem</a></div>
+</div>
+<section class="card" style="margin:0 5% 30px">
+  <h2>Your child's academic information</h2>
+  <p>Use the linked student's page to access learning resources, announcements, results, teacher requests, private student chats, community, teacher ratings, and school fees on your child's behalf. Teacher chats require approval and last three hours; requests must be renewed after expiry.</p>
+  <a class="btn" href="{{ url_for('parent_student_page') }}">Open {{ child.full_name }}'s student page</a>
+</section>
+{% endblock %}

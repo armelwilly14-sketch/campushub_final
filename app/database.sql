@@ -6,10 +6,13 @@ CREATE TABLE IF NOT EXISTS years(id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(
 CREATE TABLE IF NOT EXISTS users(
  id INT AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(120) NOT NULL,
  email VARCHAR(150) UNIQUE NOT NULL,password VARCHAR(255) NOT NULL,
- role ENUM('student','teacher','admin') NOT NULL DEFAULT 'student',
+ role ENUM('student','teacher','admin','parent') NOT NULL DEFAULT 'student',
+ matricule VARCHAR(50) NULL UNIQUE,
+ child_student_id INT NULL,
  specialty_id INT NULL,year_id INT NULL,is_banned BOOLEAN NOT NULL DEFAULT FALSE,is_suspended BOOLEAN NOT NULL DEFAULT FALSE,last_seen TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY(specialty_id) REFERENCES specialties(id) ON DELETE SET NULL,
- FOREIGN KEY(year_id) REFERENCES years(id) ON DELETE SET NULL);
+ FOREIGN KEY(year_id) REFERENCES years(id) ON DELETE SET NULL,
+ FOREIGN KEY(child_student_id) REFERENCES users(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS courses(id INT AUTO_INCREMENT PRIMARY KEY,code VARCHAR(30),name VARCHAR(150) NOT NULL);
 CREATE TABLE IF NOT EXISTS announcements(
  id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(200) NOT NULL,content TEXT NOT NULL,
@@ -33,6 +36,7 @@ CREATE TABLE IF NOT EXISTS past_papers(
 CREATE TABLE IF NOT EXISTS hall_distribution(
  id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(200) NOT NULL,specialty_id INT NULL,
  year_id INT NULL,course_id INT NULL,hall VARCHAR(100) NOT NULL,distribution_date DATE,
+ session ENUM('morning','evening') NOT NULL DEFAULT 'morning',start_time TIME NULL,end_time TIME NULL,
  FOREIGN KEY(specialty_id) REFERENCES specialties(id) ON DELETE SET NULL,
  FOREIGN KEY(year_id) REFERENCES years(id) ON DELETE SET NULL,
  FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE SET NULL);
@@ -63,7 +67,7 @@ CREATE TABLE IF NOT EXISTS contact_us(id INT PRIMARY KEY,email VARCHAR(150),phon
 CREATE TABLE IF NOT EXISTS site_settings(id INT PRIMARY KEY,app_name VARCHAR(150) NOT NULL,app_title VARCHAR(255),language VARCHAR(5) DEFAULT 'en');
 
 -- Existing databases may have the old student/admin-only enum.
-ALTER TABLE users MODIFY role ENUM('student','teacher','admin') NOT NULL DEFAULT 'student';
+ALTER TABLE users MODIFY role ENUM('student','teacher','admin','parent') NOT NULL DEFAULT 'student';
 
 INSERT IGNORE INTO specialties(name) VALUES('Software Engineering'),('Network'),('Maintenance');
 INSERT IGNORE INTO years(name) VALUES('HND Year 1'),('HND Year 2'),('HND Year 3');
@@ -112,6 +116,35 @@ CREATE TABLE IF NOT EXISTS teacher_student_messages(
  FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS parent_teacher_requests(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ parent_id INT NOT NULL,
+ student_id INT NOT NULL,
+ teacher_id INT NOT NULL,
+ status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+ approved_by INT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ decided_at TIMESTAMP NULL,
+ started_at DATETIME NULL,
+ expires_at DATETIME NULL,
+ INDEX idx_parent_teacher_request(parent_id,student_id,teacher_id,status),
+ FOREIGN KEY(parent_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(approved_by) REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS parent_teacher_messages(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ request_id INT NOT NULL,
+ sender_id INT NOT NULL,
+ receiver_id INT NOT NULL,
+ message TEXT NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(request_id) REFERENCES parent_teacher_requests(id) ON DELETE CASCADE,
+ FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS community_posts(
  id INT AUTO_INCREMENT PRIMARY KEY,
  user_id INT NOT NULL,
@@ -127,4 +160,45 @@ CREATE TABLE IF NOT EXISTS community_comments(
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY(post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS fee_payments(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ student_id INT NOT NULL,
+ amount DECIMAL(12,2) NOT NULL,
+ payment_period VARCHAR(100) NOT NULL,
+ bank_reference VARCHAR(100) NOT NULL,
+ receipt_filename VARCHAR(255) NULL,
+ status ENUM('pending','confirmed','rejected') NOT NULL DEFAULT 'pending',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_fee_payments_student_created(student_id,created_at),
+ FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS fee_schedules(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ payment_period VARCHAR(100) NOT NULL UNIQUE,
+ total_amount DECIMAL(12,2) NOT NULL,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS fee_payment_settings(
+ id TINYINT PRIMARY KEY,
+ bank_name VARCHAR(150) NOT NULL,
+ account_name VARCHAR(150) NOT NULL,
+ account_number VARCHAR(80) NOT NULL,
+ branch VARCHAR(150) NULL,
+ currency VARCHAR(12) NULL,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS teacher_ratings(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ student_id INT NOT NULL,
+ teacher_id INT NOT NULL,
+ rating TINYINT NOT NULL,
+ comment TEXT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_teacher_rating_student_teacher(student_id,teacher_id),
+ FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE CASCADE
 );

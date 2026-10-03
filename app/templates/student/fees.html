@@ -1,0 +1,64 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head">
+  <div><span class="pill">{{ 'Parent Finance' if is_parent else 'Student Finance' }}</span><h1>School fee payment</h1><p>{% if is_parent %}Pay and track fees for {{ fee_student.full_name }} ({{ fee_student.matricule }}).{% else %}Pay by bank transfer, then submit the transfer details for verification.{% endif %}</p></div>
+  <a class="btn secondary" href="{{ url_for('parent_dashboard' if is_parent else 'student_dashboard') }}">← {{ 'Parent home' if is_parent else 'Student dashboard' }}</a>
+</div>
+<section class="fee-balances">
+  {% for balance in balances %}<article class="fee-balance-card"><small>{{ balance.payment_period }}</small><div class="fee-balance-numbers"><span>Fee due <b>{% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(balance.total_amount) }}</b></span><span>Paid <b>{% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(balance.paid) }}</b></span><span>Remaining <b>{% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(balance.total_amount|float - balance.paid|float) }}</b></span></div>{% if balance.pending %}<small>Awaiting verification: {% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(balance.pending) }}</small>{% endif %}</article>{% else %}<div class="fee-notice">School fee amounts have not been set yet. Please check back after the administration publishes the fee schedule.</div>{% endfor %}
+</section>
+<div class="fee-layout">
+  <section class="card fee-bank-card">
+    <span class="fee-step">STEP 1 · BANK TRANSFER</span>
+    <h2>Official bank account</h2>
+    {% if bank_configured %}
+      <p>Transfer your fees to the account below. Confirm the details with the finance office if anything looks different.</p>
+      <dl class="bank-details">
+        <div><dt>Bank</dt><dd>{{ bank.name }}</dd></div>
+        <div><dt>Account name</dt><dd>{{ bank.account_name }}</dd></div>
+        <div><dt>Account number</dt><dd>{{ bank.account_number }}</dd></div>
+        {% if bank.branch %}<div><dt>Branch</dt><dd>{{ bank.branch }}</dd></div>{% endif %}
+        {% if bank.currency %}<div><dt>Currency</dt><dd>{{ bank.currency }}</dd></div>{% endif %}
+      </dl>
+    {% else %}
+      <div class="fee-notice"><strong>Bank details are not configured yet.</strong><br>Please contact the school finance office for the official bank account details before transferring money. Do not send funds to an unverified account.</div>
+    {% endif %}
+    <p class="fee-note">This page records a bank transfer for manual verification. It does not initiate or process a payment.</p>
+  </section>
+
+  <section class="card fee-submit-card">
+    <span class="fee-step">STEP 2 · SUBMIT TRANSFER</span>
+    <h2>Report your transfer</h2>
+    <p>Use the exact amount and transaction reference shown by your bank. A receipt upload is optional but recommended.</p>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('fee_payment') }}">
+      <label for="payment_period">Academic period</label>
+      <select id="payment_period" name="payment_period" required {% if not schedules %}disabled{% endif %}><option value="">Select a fee period</option>{% for schedule in schedules %}<option value="{{ schedule.payment_period }}">{{ schedule.payment_period }} — Due {% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(schedule.total_amount) }}</option>{% endfor %}</select>
+      <label for="amount">Amount transferred{% if bank.currency %} ({{ bank.currency }}){% endif %}</label>
+      <input id="amount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+      <label for="bank_reference">Bank transaction reference</label>
+      <input id="bank_reference" name="bank_reference" maxlength="100" placeholder="Reference from your bank receipt" required>
+      <label for="receipt">Transfer receipt <span class="fee-optional">(optional · PDF, JPG or PNG)</span></label>
+      <input id="receipt" name="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+      <button class="btn" type="submit" {% if not bank_configured or not schedules %}disabled title="Bank details and fee schedule are required"{% endif %}>Submit for verification</button>
+      {% if not bank_configured %}<small class="fee-help">Submissions are disabled until the school configures its bank details.</small>{% endif %}
+      {% if not schedules %}<small class="fee-help">Submissions are disabled until the school sets a fee amount for an academic period.</small>{% endif %}
+    </form>
+  </section>
+</div>
+
+<section class="card fee-history">
+  <h2>Payment submissions for {{ fee_student.full_name }}</h2>
+  {% if payments %}
+    <div class="table-wrap"><table class="fee-table"><thead><tr><th>Submitted</th><th>Period</th><th>Amount</th><th>Reference</th><th>Status</th><th>Receipt</th></tr></thead><tbody>
+    {% for payment in payments %}
+      <tr>
+        <td>{{ payment.created_at }}</td><td>{{ payment.payment_period }}</td>
+        <td>{% if bank.currency %}{{ bank.currency }} {% endif %}{{ '%.2f'|format(payment.amount) }}</td>
+        <td>{{ payment.bank_reference }}</td>
+        <td><span class="fee-status {{ payment.status }}">{{ payment.status|capitalize }}</span></td>
+        <td>{% if payment.receipt_filename %}<a href="{{ url_for('fee_receipt', payment_id=payment.id) }}">Download</a>{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}<p>No fee transfers have been submitted yet.</p>{% endif %}
+</section>
+{% endblock %}

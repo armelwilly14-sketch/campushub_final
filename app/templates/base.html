@@ -11,11 +11,13 @@
   <button class="menu-btn" onclick="document.querySelector('.navlinks').classList.toggle('open')">☰</button>
   <div class="navlinks">
     <a href="{{url_for('about')}}">About</a><a href="{{url_for('contact')}}">Contact</a>
-    {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('student_dashboard')}}">Dashboard</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests')}}">Teacher Requests</a>{% endif %}
+    {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('student_dashboard')}}">Dashboard</a><a href="{{url_for('fee_payment')}}">School Fees</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests')}}">Teacher Requests</a><a href="{{url_for('teacher_ratings')}}">Rate Teachers</a>{% endif %}
+    {% if session.get('user_id') and current_role=='parent' %}<a href="{{url_for('parent_dashboard')}}">Parent Home</a><a href="{{url_for('fee_payment')}}">School Fees</a><a href="{{url_for('parent_student_page')}}">Child's Student Page</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests')}}">Teacher Requests</a><a href="{{url_for('parent_teacher_requests')}}">Parent Chat Requests</a><a href="{{url_for('reports')}}">Report Problem</a>{% endif %}
     {% if session.get('user_id') and current_role=='teacher' %}<a href="{{url_for('teacher_dashboard')}}">Teacher Dashboard</a><a href="{{url_for('teacher_directory')}}">Teachers</a><a href="{{url_for('reports')}}">Report Problem</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('teacher_requests_view')}}">Student Requests</a>{% endif %}
     {% if session.get('user_id') and current_role=='student' %}<a href="{{url_for('reports')}}">Report Problem</a>{% endif %}
-    {% if session.get('user_id') and current_role=='admin' %}<a href="{{url_for('admin_overview')}}">Admin</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('admin_teacher_requests')}}">Teacher Requests</a><a href="{{url_for('admin_reports')}}">Problem Reports</a><a href="{{url_for('admin_chat')}}">Admin Chat</a>{% endif %}
-    <a class="{% if language == 'en' %}selected{% endif %}" href="{{url_for('set_language',lang='en')}}">EN</a><a class="{% if language == 'fr' %}selected{% endif %}" href="{{url_for('set_language',lang='fr')}}">FR</a>
+    {% if session.get('user_id') and current_role=='admin' %}<a href="{{url_for('admin_overview')}}">Admin</a><a href="{{url_for('admin_fees')}}">School Fees</a><a href="{{url_for('admin_teacher_ratings')}}">Teacher Ratings</a><a href="{{url_for('community')}}">Community</a><a href="{{url_for('admin_teacher_requests')}}">Teacher Requests</a><a href="{{url_for('admin_reports')}}">Problem Reports</a><a href="{{url_for('admin_chat')}}">Admin Chat</a>{% endif %}
+    {% if session.get('user_id') and current_role in ('parent','teacher','admin') %}<a href="{{url_for('assistant')}}">AI Assistant</a>{% endif %}
+    <a class="{% if language == 'en' %}selected{% endif %}" lang="en" hreflang="en" aria-label="Switch language to English" href="{{url_for('set_language',lang='en',next=request.path)}}">EN</a><a class="{% if language == 'fr' %}selected{% endif %}" lang="fr" hreflang="fr" aria-label="Changer la langue en français" href="{{url_for('set_language',lang='fr',next=request.path)}}">FR</a>
     <button class="theme-btn" onclick="toggleTheme()">☀/🌙</button>
     {% if session.get('user_id') %}<a href="{{url_for('profile')}}">Profile</a><a href="{{url_for('logout')}}">Logout</a>{% else %}<a href="{{url_for('login')}}">Login</a>{% endif %}
   </div>
@@ -72,6 +74,32 @@ const frenchTranslations = {
   'use the official academic levels:': 'Utilisez les niveaux académiques officiels :', 'add another year if needed': 'Ajoutez une autre année si nécessaire',
   'add year': 'Ajouter une année', 'course code': 'Code du cours', 'course name': 'Nom du cours', 'add course': 'Ajouter un cours',
   'save settings': 'Enregistrer les paramètres', 'publish': 'Publier', 'upload pdf': 'Téléverser le PDF', 'upload': 'Téléverser'
+  ,'parent home': 'Accueil parent', 'parent portal': 'Portail parent', 'child\'s student page': 'Page étudiant de votre enfant',
+  'school fees': 'Frais de scolarité', 'rate teachers': 'Évaluer les enseignants', 'report problem': 'Signaler un problème',
+  'teacher ratings': 'Évaluations des enseignants', 'ai assistant': 'Assistant IA', 'teacher dashboard': 'Tableau de bord enseignant',
+  'teacher requests': 'Demandes aux enseignants', 'parent chat requests': 'Demandes de discussion parent',
+  'problem reports': 'Signalements de problèmes', 'student portal': 'Portail étudiant',
+  'rate your teachers': 'Évaluez vos enseignants', 'private feedback': 'Commentaires privés',
+  'rating (1–5 stars)': 'Évaluation (1 à 5 étoiles)', 'comment (optional)': 'Commentaire (facultatif)',
+  'submit rating': 'Envoyer l’évaluation', 'submit / update rating': 'Envoyer / modifier l’évaluation',
+  'only administrators can view submitted ratings': 'Seuls les administrateurs peuvent consulter les évaluations envoyées',
+  'campushub assistant': 'Assistant CampusHub', 'your question': 'Votre question',
+  'ask assistant': 'Interroger l’assistant', 'assistant response': 'Réponse de l’assistant',
+  'official bank account': 'Compte bancaire officiel', 'bank name': 'Nom de la banque',
+  'account name': 'Titulaire du compte', 'account number': 'Numéro de compte',
+  'branch (optional)': 'Agence (facultatif)', 'currency (optional)': 'Devise (facultatif)',
+  'save bank details': 'Enregistrer les coordonnées bancaires', 'academic period': 'Période académique',
+  'amount transferred': 'Montant transféré', 'bank transaction reference': 'Référence du virement bancaire',
+  'transfer receipt': 'Reçu du virement', 'submit for verification': 'Soumettre pour vérification',
+  'request history': 'Historique des demandes', 'open chat': 'Ouvrir la discussion',
+  'send message': 'Envoyer le message', 'no messages yet': 'Aucun message pour le moment',
+  'morning session': 'Session du matin', 'evening session': 'Session du soir',
+  'start time': 'Heure de début', 'end time': 'Heure de fin', 'save changes': 'Enregistrer les modifications',
+  'parent teacher chat': 'Discussion parent-enseignant', 'teacher communication': 'Communication avec les enseignants',
+  'student registration': 'Inscription étudiant', 'parent registration': 'Inscription parent',
+  'create a parent account': 'Créer un compte parent', 'create your campushub account': 'Créer votre compte CampusHub',
+  'student / staff': 'Étudiant / personnel', 'login as': 'Se connecter en tant que',
+  'child\'s matriculation number': 'Numéro matricule de l’enfant', 'invalid login': 'Identifiants invalides.'
 };
 
 const translationPattern = new RegExp(
@@ -106,8 +134,8 @@ function translatePage() {
     if (translated !== value) node.nodeValue = translated;
   });
 
-  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach((element) => {
-    ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
+  document.querySelectorAll('[placeholder],[title],[aria-label],input[type="submit"],input[type="button"]').forEach((element) => {
+    ['placeholder', 'title', 'aria-label', 'value'].forEach((attribute) => {
       if (!element.hasAttribute(attribute)) return;
       const original = element.getAttribute(attribute) || '';
       const translated = translateText(original);
